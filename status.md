@@ -2,6 +2,16 @@
 
 Documento de acompanhamento das funcionalidades implementadas.
 
+## Reels — 31/10/2026
+
+- Implementado: cadastro de MP4 por link ou upload direto ao Supabase;
+  um vídeo por dia, repetição semanal e janela das 18h de Lisboa.
+- Feed mantém a programação anterior, em cron separado.
+- Acompanhamento de processamento da Meta no histórico e reserva diária contra duplicatas.
+- 11 testes simulados passaram: fluxo Meta, autenticação, upload, seleção por dia, conflitos, horário de verão e duplicatas.
+- Falta executar `supabase/reels.sql` e testar com um vídeo real após o deploy.
+- Guia completo: [REELS.md](REELS.md).
+
 ## Atualização de implantação — 30/10/2026
 
 - Publicação manual em produção confirmada pelo responsável após renovar o token da Meta.
@@ -10,7 +20,8 @@ Documento de acompanhamento das funcionalidades implementadas.
 - Projeto Supabase criado: `suldwxsybezgoyhvpwre`, conta `evelyncristini2013@gmail.com`.
 - SQL de configuração executado no Supabase, conforme informado pelo responsável.
 - Variáveis Supabase configuradas no Vercel, conforme informado pelo responsável; redeploy anterior ainda sem o código da integração.
-- Pendências: enviar código da integração e testar upload/publicação no novo deploy.
+- Código da integração enviado ao GitHub no commit `7e340ab`.
+- Pendências: confirmar o novo deploy e testar upload/publicação em produção.
 - O erro de carregamento do painel motivou a inclusão de entrada com `ADMIN_SECRET`.
 - O cron do Vercel permanece fixo em 09:00 UTC; o horário exibido no painel não o reprograma.
 - Detalhes e checklist atual: [SUPABASE.md](SUPABASE.md).

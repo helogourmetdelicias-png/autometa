@@ -1,10 +1,12 @@
 // Rota para testar publicação imediata
 import { NextRequest, NextResponse } from 'next/server';
 import { publishScheduledPost, getNextPost } from '@/services/autoPublisher';
-import { publishToFacebook } from '@/services/facebook';
+import { publishDailyPost } from '@/services/publishDailyPost';
 import { savePublication } from '@/lib/logger';
 import { readConfig } from '@/lib/postsConfig';
 import { DailyPostsConfig, PublicationEntry } from '@/types/scheduler';
+
+export const maxDuration = 180;
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await publishToFacebook(post.message, post.link || undefined, post.imageUrl || undefined);
+      const result = await publishDailyPost(post);
 
       // Salva no log
       const entry: PublicationEntry = {
@@ -57,7 +59,8 @@ export async function POST(request: NextRequest) {
         postId: result.success ? result.postId : null,
         message: post.message,
         link: post.link || undefined,
-        status: result.success ? 'success' : 'error',
+        kind: post.kind || 'feed',
+        status: result.success ? (result.pending ? 'processing' : 'success') : 'error',
         timestamp: new Date().toISOString(),
         error: result.success ? undefined : result.error,
         dayOfWeek: 'test',
@@ -69,7 +72,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           postId: result.postId,
-          message: `Post de teste publicado com sucesso: ${post.id}`,
+          pending: result.pending,
+          message: result.pending ? 'Reel enviado à Meta. Acompanhe o processamento no histórico antes de reenviar.' : `Post de teste publicado com sucesso: ${post.id}`,
           content: post.message.substring(0, 100) + (post.message.length > 100 ? '...' : ''),
         });
       } else {

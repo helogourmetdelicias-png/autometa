@@ -23,6 +23,7 @@ export interface FacebookApiError {
 export interface PublishResult {
   success: true;
   postId: string;
+  pending?: boolean;
 }
 
 export interface PublishError {

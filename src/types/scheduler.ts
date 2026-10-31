@@ -5,6 +5,8 @@ export interface DailyPost {
   message: string;
   link?: string | null;
   imageUrl?: string | null;
+  kind?: 'feed' | 'reel';
+  videoUrl?: string | null;
   days: string[];
 }
 
@@ -22,7 +24,8 @@ export interface PublicationEntry {
   postId: string | null;
   message: string;
   link?: string;
-  status: 'success' | 'error';
+  kind?: 'feed' | 'reel';
+  status: 'success' | 'error' | 'processing';
   timestamp: string;
   error?: string;
   dayOfWeek: string;
@@ -36,6 +39,7 @@ export interface PublicationStats {
   total: number;
   success: number;
   failed: number;
+  processing?: number;
   lastPublication: PublicationEntry | null;
 }
 

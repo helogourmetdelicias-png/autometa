@@ -1,6 +1,7 @@
 // Sistema de logging para publicações automáticas
 import { readJson, writeJson } from './jsonStore';
 import { PublicationEntry, PublicationLog, PublicationStats } from '@/types/scheduler';
+import { getReelStatus } from '@/services/reels';
 
 async function readLog(): Promise<PublicationLog> {
   return readJson('logs/publications.json', { publications: [] });
@@ -38,7 +39,27 @@ export async function getPublicationHistory(
   offset: number = 0
 ): Promise<PublicationEntry[]> {
   const log = await readLog();
-  return log.publications.slice(offset, offset + limit);
+  const page = log.publications.slice(offset, offset + limit);
+  const updates: Record<string, 'success' | 'error'> = {};
+  await Promise.all(page.filter(entry => entry.kind === 'reel' && entry.status === 'processing' && entry.postId).slice(0, 5).map(async entry => {
+    try {
+      const status = await getReelStatus(entry.postId!);
+      if (status !== 'processing') updates[entry.id] = status;
+    } catch { /* Falha de consulta não significa falha da publicação: manter pendente. */ }
+  }));
+  if (Object.keys(updates).length) {
+    // Releitura preserva publicações adicionadas enquanto a Meta era consultada.
+    const latest = await readLog();
+    for (const entry of latest.publications) {
+      if (updates[entry.id] && entry.status === 'processing') {
+        entry.status = updates[entry.id];
+        if (entry.status === 'error') entry.error = 'A Meta recusou o processamento do Reel. Confira o formato do vídeo e as permissões antes de reenviar.';
+      }
+    }
+    await writeLog(latest);
+    return latest.publications.slice(offset, offset + limit);
+  }
+  return page;
 }
 
 /**
@@ -50,12 +71,14 @@ export async function getPublicationStats(): Promise<PublicationStats> {
   const total = log.publications.length;
   const success = log.publications.filter(p => p.status === 'success').length;
   const failed = log.publications.filter(p => p.status === 'error').length;
+  const processing = log.publications.filter(p => p.status === 'processing').length;
   const lastPublication = log.publications.length > 0 ? log.publications[0] : null;
   
   return {
     total,
     success,
     failed,
+    processing,
     lastPublication,
   };
 }

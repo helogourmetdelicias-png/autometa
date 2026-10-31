@@ -35,6 +35,8 @@ export function PublicationHistory() {
 
   useEffect(() => {
     fetchHistory(page);
+    const timer = setInterval(() => { void fetchHistory(page); }, 60000);
+    return () => clearInterval(timer);
   }, [page]);
 
   const totalPages = Math.ceil(total / limit);
@@ -102,7 +104,9 @@ export function PublicationHistory() {
                   {pub.postId ? pub.postId.substring(0, 20) + '...' : '-'}
                 </td>
                 <td className="px-4 py-3 text-center">
-                  {pub.status === 'success' ? (
+                  {pub.status === 'processing' ? (
+                    <span className="inline-flex px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full">Processando na Meta</span>
+                  ) : pub.status === 'success' ? (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
                       ✅ Sucesso
                     </span>
@@ -132,7 +136,9 @@ export function PublicationHistory() {
                   timeStyle: 'short',
                 })}
               </span>
-              {pub.status === 'success' ? (
+              {pub.status === 'processing' ? (
+                <span className="text-xs text-amber-800">Processando na Meta</span>
+              ) : pub.status === 'success' ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
                   ✅
                 </span>
@@ -143,6 +149,7 @@ export function PublicationHistory() {
               )}
             </div>
             <p className="text-xs text-gray-900 mb-1 line-clamp-2">{pub.message}</p>
+            {pub.kind === 'reel' && <p className="text-xs text-blue-700">Reel</p>}
             <p className="text-xs text-gray-500 capitalize">
               <strong>Dia:</strong> {pub.dayOfWeek}
             </p>

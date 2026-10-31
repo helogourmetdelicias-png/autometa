@@ -5,6 +5,14 @@
     {
       "path": "/api/cron/daily-post",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/daily-reel-summer",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/daily-reel-winter",
+      "schedule": "0 18 * * *"
     }
   ]
 }

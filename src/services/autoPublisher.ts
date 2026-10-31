@@ -1,21 +1,15 @@
 // Serviço de publicação automática de posts no Facebook
 import { readConfig } from '@/lib/postsConfig';
 import { DailyPost, DailyPostsConfig, PublicationEntry } from '@/types/scheduler';
-import { publishToFacebook } from '@/services/facebook';
+import { publishDailyPost } from '@/services/publishDailyPost';
+import { claimPublication } from '@/lib/jsonStore';
 import { savePublication } from '@/lib/logger';
 import { readState } from '@/lib/schedulerState';
 
 
-// Mapeamento de índices de dia da semana para nomes
-const DAY_NAMES: Record<number, string> = {
-  0: 'sunday',
-  1: 'monday',
-  2: 'tuesday',
-  3: 'wednesday',
-  4: 'thursday',
-  5: 'friday',
-  6: 'saturday',
-};
+function currentDay(timezone = process.env.PUBLICATION_TIMEZONE || 'Europe/Lisbon'): string {
+  return new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: timezone }).format(new Date()).toLowerCase();
+}
 
 /**
  * Lê a configuração de posts diários
@@ -27,17 +21,15 @@ async function readDailyPostsConfig(): Promise<DailyPostsConfig> {
 /**
  * Retorna o post apropriado para o dia da semana atual
  */
-export async function getNextPost(): Promise<DailyPost | null> {
+export async function getNextPost(kind: 'feed' | 'reel' = 'feed'): Promise<DailyPost | null> {
   const config = await readDailyPostsConfig();
   
   // Obtém o dia da semana atual (0 = domingo, 6 = sábado)
-  const configTimezone = process.env.PUBLICATION_TIMEZONE || config.schedule.timezone || 'Europe/Lisbon';
-  const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: configTimezone }).format(new Date()).toLowerCase();
-  const today = Object.keys(DAY_NAMES).map(Number).find(day => DAY_NAMES[day] === weekday)!;
-  const dayName = DAY_NAMES[today];
+  const configTimezone = kind === 'reel' ? 'Europe/Lisbon' : process.env.PUBLICATION_TIMEZONE || config.schedule.timezone || 'Europe/Lisbon';
+  const dayName = currentDay(configTimezone);
   
   // Busca o post que corresponde ao dia atual
-  const post = config.posts.find(p => p.days.includes(dayName));
+  const post = config.posts.find(p => (p.kind || 'feed') === kind && p.days.includes(dayName));
   
   return post || null;
 }
@@ -45,11 +37,12 @@ export async function getNextPost(): Promise<DailyPost | null> {
 /**
  * Publica o post agendado para o dia atual
  */
-export async function publishScheduledPost(): Promise<{
+export async function publishScheduledPost(kind: 'feed' | 'reel' = 'feed'): Promise<{
   success: boolean;
   postId?: string;
   error?: string;
   message?: string;
+  pending?: boolean;
 }> {
   try {
     // Verifica se o agendamento está habilitado
@@ -62,19 +55,25 @@ export async function publishScheduledPost(): Promise<{
     }
     
     // Obtém o post do dia
-    const post = await getNextPost();
+    const post = await getNextPost(kind);
     
     if (!post) {
-      const today = new Date().getDay();
-      const dayName = DAY_NAMES[today];
+      if (kind === 'reel') return { success: true, message: 'Nenhum Reel configurado para hoje. Nenhum vídeo foi enviado.' };
+      const dayName = currentDay();
       return {
         success: false,
         error: `Nenhum post configurado para ${dayName}`,
       };
     }
     
-    // Publica no Facebook
-    const result = await publishToFacebook(post.message, post.link || undefined, post.imageUrl || undefined);
+    if (kind === 'reel') {
+      const timezone = 'Europe/Lisbon';
+      const date = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+      if (!await claimPublication(`reel-daily:${date}`)) {
+        return { success: true, message: 'O Reel deste dia já foi enviado ou está em verificação. Consulte o histórico antes de reenviar.' };
+      }
+    }
+    const result = await publishDailyPost(post);
     
     // Cria entrada para o log
     const entry: PublicationEntry = {
@@ -82,10 +81,11 @@ export async function publishScheduledPost(): Promise<{
       postId: result.success ? result.postId : null,
       message: post.message,
       link: post.link || undefined,
-      status: result.success ? 'success' : 'error',
+      kind,
+      status: result.success ? (result.pending ? 'processing' : 'success') : 'error',
       timestamp: new Date().toISOString(),
       error: result.success ? undefined : result.error,
-      dayOfWeek: DAY_NAMES[new Date().getDay()],
+      dayOfWeek: currentDay(kind === 'reel' ? 'Europe/Lisbon' : undefined),
     };
     
     // Salva no histórico
@@ -95,7 +95,8 @@ export async function publishScheduledPost(): Promise<{
       return {
         success: true,
         postId: result.postId,
-        message: `Post publicado com sucesso: ${post.id}`,
+        pending: result.pending,
+        message: result.pending ? `Reel enviado à Meta e em processamento: ${post.id}. Consulte o histórico para confirmar a publicação.` : `Post publicado com sucesso: ${post.id}`,
       };
     } else {
       return {
@@ -114,7 +115,7 @@ export async function publishScheduledPost(): Promise<{
       status: 'error',
       timestamp: new Date().toISOString(),
       error: errorMessage,
-      dayOfWeek: DAY_NAMES[new Date().getDay()],
+      dayOfWeek: currentDay(kind === 'reel' ? 'Europe/Lisbon' : undefined),
     };
     
     await savePublication(entry);

@@ -81,7 +81,7 @@ export default function SchedulerPage() {
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900">⏰ Agendamento Automático</h2>
           <p className="text-gray-600 mt-1">
-            Configure publicações automáticas diárias no Facebook. Um post diferente para cada dia da semana.
+            Configure o feed e os Reels da semana. Os Reels são enviados às 18h de Lisboa e repetem a programação toda semana.
           </p>
         </div>
 
@@ -121,7 +121,9 @@ export default function SchedulerPage() {
         <div className="mt-6 bg-blue-50 rounded-xl border border-blue-100 p-4">
           <h3 className="text-sm font-semibold text-blue-900 mb-2">ℹ️ Como Funciona</h3>
           <ul className="text-xs text-blue-700 space-y-1">
-            <li>• O sistema publica automaticamente um post por dia no horário configurado.</li>
+            <li>• O feed mantém seu agendamento atual. Os Reels têm uma programação separada às 18h de Lisboa.</li>
+            <li>• Cadastre até um Reel por dia da semana. Os mesmos vídeos se repetem nas semanas seguintes até serem alterados.</li>
+            <li>• O processamento da Meta pode demorar; acompanhe o histórico antes de reenviar um Reel.</li>
             <li>• Cada dia da semana pode ter posts diferentes, criando uma rotação semanal.</li>
             <li>• Em produção, use Vercel Cron Jobs para agendamento confiável.</li>
             <li>• No desenvolvimento local, execute <code className="bg-blue-100 px-1 rounded">npm run scheduler:start</code>.</li>

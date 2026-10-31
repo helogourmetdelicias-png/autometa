@@ -2,12 +2,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readConfig, writeConfig } from '@/lib/postsConfig';
 import { DailyPostsConfig, DailyPost } from '@/types/scheduler';
+import { validVideoUrl } from '@/services/reels';
 
 
 function validImageUrl(value: unknown): boolean {
   if (value === undefined || value === null || value === '') return true;
   if (typeof value !== 'string') return false;
   try { return new URL(value).protocol === 'https:'; } catch { return false; }
+}
+
+function validatePost(post: Partial<DailyPost>, posts: DailyPost[]): string | null {
+  if (post.kind !== undefined && post.kind !== 'feed' && post.kind !== 'reel') return 'Tipo de publicação inválido.';
+  if (typeof post.message !== 'string' || !post.message.trim()) return 'Informe a mensagem da publicação.';
+  if (!Array.isArray(post.days) || !post.days.length || post.days.some(day => !['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].includes(day))) return 'Selecione dias da semana válidos.';
+  if (post.kind === 'reel') {
+    if (!validVideoUrl(post.videoUrl)) return 'Informe ou envie um vídeo HTTPS público para o Reel.';
+    if (post.imageUrl) return 'Reels usam vídeo. Remova a foto ou selecione Feed.';
+    if (post.message.length > 2200) return 'A legenda do Reel deve ter até 2.200 caracteres.';
+    if (posts.some(other => other.id !== post.id && other.kind === 'reel' && other.days.some(day => post.days!.includes(day)))) return 'Já existe um Reel para um dos dias selecionados. Edite esse Reel ou escolha outro dia.';
+  } else if (post.videoUrl) return 'Selecione Reel para usar um vídeo.';
+  return null;
 }
 
 
@@ -109,12 +123,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const validationError = validatePost(newPost, config.posts);
+    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+
     // Adiciona o novo post
     config.posts.push({
       id: newPost.id,
       message: newPost.message,
       link: newPost.link || null,
       imageUrl: newPost.imageUrl || null,
+      kind: newPost.kind || 'feed',
+      videoUrl: newPost.videoUrl || null,
       days: newPost.days,
     });
 
@@ -178,8 +197,13 @@ export async function PUT(request: NextRequest) {
       ...(updates.message !== undefined && { message: updates.message }),
       ...(updates.link !== undefined && { link: updates.link }),
       ...(updates.imageUrl !== undefined && { imageUrl: updates.imageUrl }),
+      ...(updates.kind !== undefined && { kind: updates.kind }),
+      ...(updates.videoUrl !== undefined && { videoUrl: updates.videoUrl }),
       ...(updates.days !== undefined && { days: updates.days }),
     };
+
+    const validationError = validatePost(updatedPost, config.posts);
+    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
 
     // Validações
     if (updatedPost.message.length > 63206) {

@@ -46,3 +46,24 @@ export async function writeJson<T>(file: string, value: T): Promise<void> {
   await fs.mkdir(path.dirname(target), { recursive: true });
   await fs.writeFile(target, JSON.stringify(value, null, 2), 'utf8');
 }
+
+// Inserção exclusiva: chamadas duplicadas do cron não enviam o vídeo novamente.
+export async function claimPublication(key: string): Promise<boolean> {
+  const config = supabaseConfig();
+  if (config) {
+    const response = await fetch(`${config.url}/rest/v1/autometa_data`, {
+      method: 'POST',
+      headers: { apikey: config.key, Authorization: `Bearer ${config.key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, value: { startedAt: new Date().toISOString() } }),
+      cache: 'no-store', signal: AbortSignal.timeout(15000),
+    });
+    if (response.status === 409) return false;
+    if (!response.ok) throw new Error('Não foi possível reservar a publicação no Supabase. Nenhum vídeo foi enviado.');
+    return true;
+  }
+  if (process.env.VERCEL) throw new Error('Configure o Supabase antes de ativar os Reels automáticos.');
+  const target = path.join(process.cwd(), 'logs', `${key.replace(/[^a-zA-Z0-9-]/g, '_')}.json`);
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  try { await fs.writeFile(target, '{}', { flag: 'wx' }); return true; }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'EEXIST') return false; throw error; }
+}

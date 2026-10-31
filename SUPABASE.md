@@ -1,5 +1,8 @@
 # Fotos nos posts automáticos
 
+Reels adicionados em 31/10/2026: veja [REELS.md](REELS.md).
+Para enviar os vídeos, execute também `supabase/reels.sql` no projeto existente.
+
 ## Projeto criado — 30/10/2026
 
 - Conta informada pelo responsável: `evelyncristini2013@gmail.com` (criada com ajuda do ChatGPT).
@@ -21,7 +24,8 @@ no `.env.local`, nunca no repositório.
 - [x] Build local e testes simulados de publicação e persistência passaram.
 - [x] Executar `supabase/setup.sql` no SQL Editor do projeto (execução informada pelo responsável).
 - [x] Configurar `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no Vercel (configuração informada pelo responsável).
-- [ ] Enviar a integração preparada ao GitHub e fazer o deploy.
+- [x] Integração enviada ao GitHub no commit `7e340ab`.
+- [ ] Confirmar conclusão do novo deploy no Vercel.
 - [ ] Testar salvamento, upload real e publicação com foto.
 
 Não foi verificado acesso ao projeto Supabase nesta etapa.

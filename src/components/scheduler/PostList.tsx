@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { Alert } from '@/components/ui/Alert';
 import { DailyPost, DailyPostsConfig } from '@/types/scheduler';
+import { ReelUpload } from './ReelUpload';
 
 const DAYS = [
   { value: 'monday', label: 'Seg' },
@@ -76,6 +77,8 @@ export function PostList() {
           message: formData.message,
           link: formData.link || null,
           imageUrl: formData.imageUrl || null,
+          kind: formData.kind || 'feed',
+          videoUrl: formData.videoUrl || null,
           days: formData.days,
         }),
       });
@@ -175,6 +178,11 @@ export function PostList() {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-900">
+        <p className="font-semibold">Reels às 18h de Lisboa · repetição semanal</p>
+        <p className="mt-1">{DAYS.filter(day => posts.some(post => post.kind === 'reel' && post.days.includes(day.value))).length}/7 dias com vídeo. Cadastre um Reel para cada dia; o feed mantém o agendamento atual.</p>
+        <p className="mt-1 text-blue-700">No plano gratuito do Vercel, o envio pode ocorrer durante a hora das 18h. A Meta ainda precisa processar o vídeo.</p>
+      </div>
       {feedback && (
         <Alert variant={feedback.type} title={feedback.type === 'success' ? 'Sucesso' : 'Erro'}>
           {feedback.message}
@@ -185,6 +193,7 @@ export function PostList() {
       {!adding && !editing && (
         <Button
           variant="primary"
+          disabled={uploading}
           onClick={() => {
             setAdding(true);
             setFormData({ id: '', message: '', link: '', days: [] });
@@ -220,10 +229,18 @@ export function PostList() {
             value={formData.message || ''}
             onChange={(e) => setFormData({ ...formData, message: e.target.value })}
             rows={4}
-            maxCharacters={63206}
+            maxCharacters={formData.kind === 'reel' ? 2200 : 63206}
             currentLength={(formData.message || '').length}
             placeholder="Escreva a mensagem do post..."
           />
+
+          <div>
+            <label htmlFor="post-kind" className="block text-xs font-medium text-gray-700 mb-1">Tipo de publicação</label>
+            <select id="post-kind" disabled={uploading} value={formData.kind || 'feed'} onChange={e => setFormData({ ...formData, kind: e.target.value as 'feed' | 'reel', imageUrl: null, videoUrl: null })} className="w-full px-3 py-2 border rounded-lg text-sm">
+              <option value="feed">Feed — texto ou foto</option>
+              <option value="reel">Reel — vídeo às 18h de Lisboa</option>
+            </select>
+          </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Link (opcional)</label>
@@ -236,7 +253,9 @@ export function PostList() {
             />
           </div>
 
-          <div>
+          {formData.kind === 'reel' ? (
+            <ReelUpload value={formData.videoUrl || ''} onChange={url => setFormData(current => ({ ...current, videoUrl: url }))} onBusyChange={setUploading} />
+          ) : <div>
             <label htmlFor="post-image" className="block text-xs font-medium text-gray-700 mb-1">Foto (opcional)</label>
             <input
               id="post-image"
@@ -272,7 +291,7 @@ export function PostList() {
             }} />
             {uploading && <p role="status" className="text-xs mt-1">Enviando foto...</p>}
             {formData.imageUrl && <a href={formData.imageUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-blue-600 underline mt-2">Conferir foto selecionada</a>}
-          </div>
+          </div>}
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-2">Dias da Semana</label>
@@ -305,6 +324,7 @@ export function PostList() {
             </Button>
             <Button
               variant="secondary"
+              disabled={uploading}
               onClick={() => {
                 setAdding(false);
                 setEditing(null);
@@ -328,6 +348,8 @@ export function PostList() {
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <h5 className="text-sm font-semibold text-gray-900 mb-1">{post.id}</h5>
+                <p className="text-xs font-medium text-blue-700 mb-1">{post.kind === 'reel' ? 'Reel · 18h de Lisboa' : 'Feed · agendamento atual'}</p>
+                {post.kind === 'reel' && post.videoUrl && <a href={post.videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline">Ver vídeo</a>}
                 {post.imageUrl && <a href={post.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline">Ver foto anexada</a>}
                 <p className="text-xs text-gray-600 mb-2 line-clamp-2">
                   {post.message.substring(0, 150)}
@@ -348,7 +370,19 @@ export function PostList() {
                 </div>
               </div>
               <div className="flex gap-1">
+                <button disabled={uploading} className="px-2 py-1 text-xs text-blue-700 rounded hover:bg-blue-50" onClick={async () => {
+                  if (!confirm(`Publicar "${post.id}" agora no Facebook? Isso cria uma publicação real, além da programação automática.`)) return;
+                  setUploading(true);
+                  try {
+                    const response = await fetch('/api/scheduler/test', { method: 'POST', headers: { Authorization: `Bearer ${sessionStorage.getItem('adminSecret')}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ postId: post.id }) });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'Falha ao publicar.');
+                    setFeedback({ type: 'success', message: data.message });
+                  } catch (error) { setFeedback({ type: 'error', message: error instanceof Error ? error.message : 'Falha ao publicar.' }); }
+                  finally { setUploading(false); }
+                }}>Publicar agora</button>
                 <button
+                  disabled={uploading}
                   onClick={() => handleEdit(post)}
                   className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors"
                   title="Editar"
@@ -356,6 +390,7 @@ export function PostList() {
                   ✏️
                 </button>
                 <button
+                  disabled={uploading}
                   onClick={() => handleDelete(post.id)}
                   className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded transition-colors"
                   title="Remover"
