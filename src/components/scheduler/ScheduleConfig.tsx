@@ -21,7 +21,7 @@ export function ScheduleConfig() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const adminSecret = localStorage.getItem('adminSecret');
+        const adminSecret = sessionStorage.getItem('adminSecret');
         const response = await fetch('/api/scheduler/posts', {
           headers: {
             'Authorization': `Bearer ${adminSecret}`,
@@ -48,7 +48,7 @@ export function ScheduleConfig() {
     setFeedback(null);
 
     try {
-      const adminSecret = localStorage.getItem('adminSecret');
+      const adminSecret = sessionStorage.getItem('adminSecret');
       
       // Primeiro, busca a configuração atual
       const getResponse = await fetch('/api/scheduler/posts', {
@@ -87,8 +87,10 @@ export function ScheduleConfig() {
         }),
       });
 
-      // Como o endpoint atual não suporta schedule diretamente,
-      // vamos apenas mostrar feedback positivo
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Não foi possível salvar a configuração.');
+      }
       setFeedback({
         type: 'success',
         message: 'Configuração salva! Reinicie o servidor para aplicar mudanças.',

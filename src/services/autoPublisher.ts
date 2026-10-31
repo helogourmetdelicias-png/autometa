@@ -1,11 +1,10 @@
 // Serviço de publicação automática de posts no Facebook
-import { promises as fs } from 'fs';
-import path from 'path';
+import { readConfig } from '@/lib/postsConfig';
 import { DailyPost, DailyPostsConfig, PublicationEntry } from '@/types/scheduler';
 import { publishToFacebook } from '@/services/facebook';
 import { savePublication } from '@/lib/logger';
+import { readState } from '@/lib/schedulerState';
 
-const CONTENT_FILE = path.join(process.cwd(), 'content', 'daily-posts.json');
 
 // Mapeamento de índices de dia da semana para nomes
 const DAY_NAMES: Record<number, string> = {
@@ -22,22 +21,7 @@ const DAY_NAMES: Record<number, string> = {
  * Lê a configuração de posts diários
  */
 async function readDailyPostsConfig(): Promise<DailyPostsConfig> {
-  try {
-    const content = await fs.readFile(CONTENT_FILE, 'utf-8');
-    const data: unknown = JSON.parse(content);
-    
-    // Validação básica
-    if (typeof data === 'object' && data !== null && 'posts' in data && Array.isArray((data as DailyPostsConfig).posts)) {
-      return data as DailyPostsConfig;
-    }
-    
-    throw new Error('Formato inválido do arquivo daily-posts.json');
-  } catch (error) {
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-      throw new Error('Arquivo content/daily-posts.json não encontrado');
-    }
-    throw error;
-  }
+  return readConfig();
 }
 
 /**
@@ -47,7 +31,9 @@ export async function getNextPost(): Promise<DailyPost | null> {
   const config = await readDailyPostsConfig();
   
   // Obtém o dia da semana atual (0 = domingo, 6 = sábado)
-  const today = new Date().getDay();
+  const configTimezone = process.env.PUBLICATION_TIMEZONE || config.schedule.timezone || 'Europe/Lisbon';
+  const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: configTimezone }).format(new Date()).toLowerCase();
+  const today = Object.keys(DAY_NAMES).map(Number).find(day => DAY_NAMES[day] === weekday)!;
   const dayName = DAY_NAMES[today];
   
   // Busca o post que corresponde ao dia atual
@@ -67,7 +53,7 @@ export async function publishScheduledPost(): Promise<{
 }> {
   try {
     // Verifica se o agendamento está habilitado
-    const enabled = process.env.SCHEDULER_ENABLED === 'true';
+    const { enabled } = await readState();
     if (!enabled) {
       return {
         success: false,
@@ -88,7 +74,7 @@ export async function publishScheduledPost(): Promise<{
     }
     
     // Publica no Facebook
-    const result = await publishToFacebook(post.message, post.link || undefined);
+    const result = await publishToFacebook(post.message, post.link || undefined, post.imageUrl || undefined);
     
     // Cria entrada para o log
     const entry: PublicationEntry = {

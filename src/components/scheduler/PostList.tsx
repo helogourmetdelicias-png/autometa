@@ -21,6 +21,7 @@ export function PostList() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState<Partial<DailyPost>>({
     id: '',
     message: '',
@@ -31,7 +32,7 @@ export function PostList() {
 
   const fetchPosts = async () => {
     try {
-      const adminSecret = localStorage.getItem('adminSecret');
+      const adminSecret = sessionStorage.getItem('adminSecret');
       const response = await fetch('/api/scheduler/posts', {
         headers: {
           'Authorization': `Bearer ${adminSecret}`,
@@ -41,6 +42,9 @@ export function PostList() {
       if (response.ok) {
         const data: DailyPostsConfig = await response.json();
         setPosts(data.posts);
+      } else {
+        const data = await response.json();
+        setFeedback({ type: 'error', message: data.error || 'Não foi possível carregar os posts.' });
       }
     } catch (error) {
       console.error('Erro ao buscar posts:', error);
@@ -60,7 +64,7 @@ export function PostList() {
     }
 
     try {
-      const adminSecret = localStorage.getItem('adminSecret');
+      const adminSecret = sessionStorage.getItem('adminSecret');
       const response = await fetch('/api/scheduler/posts', {
         method: 'POST',
         headers: {
@@ -71,6 +75,7 @@ export function PostList() {
           id: formData.id,
           message: formData.message,
           link: formData.link || null,
+          imageUrl: formData.imageUrl || null,
           days: formData.days,
         }),
       });
@@ -100,7 +105,7 @@ export function PostList() {
     if (!formData.id) return;
 
     try {
-      const adminSecret = localStorage.getItem('adminSecret');
+      const adminSecret = sessionStorage.getItem('adminSecret');
       const response = await fetch('/api/scheduler/posts', {
         method: 'PUT',
         headers: {
@@ -131,7 +136,7 @@ export function PostList() {
     }
 
     try {
-      const adminSecret = localStorage.getItem('adminSecret');
+      const adminSecret = sessionStorage.getItem('adminSecret');
       const response = await fetch(`/api/scheduler/posts?id=${id}`, {
         method: 'DELETE',
         headers: {
@@ -232,6 +237,44 @@ export function PostList() {
           </div>
 
           <div>
+            <label htmlFor="post-image" className="block text-xs font-medium text-gray-700 mb-1">Foto (opcional)</label>
+            <input
+              id="post-image"
+              type="url"
+              value={formData.imageUrl || ''}
+              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              placeholder="https://seu-site.com/foto.jpg"
+            />
+            <p className="text-xs text-gray-500 mt-1">Use o link direto de uma imagem pública em HTTPS. O link do post será incluído na legenda.</p>
+            <label htmlFor="post-photo-file" className="block text-xs font-medium text-gray-700 mt-3 mb-1">Ou envie uma foto do computador (JPG/PNG, até 3 MB)</label>
+            <input id="post-photo-file" type="file" accept="image/jpeg,image/png" disabled={uploading} className="text-xs w-full" onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              if (file.size > 3 * 1024 * 1024) {
+                setFeedback({ type: 'error', message: 'A imagem deve ter até 3 MB.' });
+                return;
+              }
+              setUploading(true);
+              try {
+                const body = new FormData();
+                body.append('file', file);
+                const response = await fetch('/api/scheduler/upload', {
+                  method: 'POST', headers: { Authorization: `Bearer ${sessionStorage.getItem('adminSecret')}` }, body,
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Erro no envio da foto.');
+                setFormData(current => ({ ...current, imageUrl: data.imageUrl }));
+                setFeedback({ type: 'success', message: 'Foto enviada. Salve o post para usá-la na publicação.' });
+              } catch (error) {
+                setFeedback({ type: 'error', message: error instanceof Error ? error.message : 'Falha ao enviar foto.' });
+              } finally { setUploading(false); }
+            }} />
+            {uploading && <p role="status" className="text-xs mt-1">Enviando foto...</p>}
+            {formData.imageUrl && <a href={formData.imageUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-blue-600 underline mt-2">Conferir foto selecionada</a>}
+          </div>
+
+          <div>
             <label className="block text-xs font-medium text-gray-700 mb-2">Dias da Semana</label>
             <div className="flex flex-wrap gap-2">
               {DAYS.map((day) => (
@@ -255,6 +298,7 @@ export function PostList() {
             <Button
               variant="primary"
               onClick={editing ? handleUpdate : handleAdd}
+              disabled={uploading}
               className="flex-1"
             >
               {editing ? '💾 Salvar' : '➕ Adicionar'}
@@ -284,6 +328,7 @@ export function PostList() {
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <h5 className="text-sm font-semibold text-gray-900 mb-1">{post.id}</h5>
+                {post.imageUrl && <a href={post.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline">Ver foto anexada</a>}
                 <p className="text-xs text-gray-600 mb-2 line-clamp-2">
                   {post.message.substring(0, 150)}
                   {post.message.length > 150 ? '...' : ''}

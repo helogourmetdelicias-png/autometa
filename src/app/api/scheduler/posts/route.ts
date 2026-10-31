@@ -1,19 +1,15 @@
 // Rota CRUD para gerenciar posts rotativos
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { readConfig, writeConfig } from '@/lib/postsConfig';
 import { DailyPostsConfig, DailyPost } from '@/types/scheduler';
 
-const CONTENT_FILE = path.join(process.cwd(), 'content', 'daily-posts.json');
 
-async function readConfig(): Promise<DailyPostsConfig> {
-  const content = await fs.readFile(CONTENT_FILE, 'utf-8');
-  return JSON.parse(content) as DailyPostsConfig;
+function validImageUrl(value: unknown): boolean {
+  if (value === undefined || value === null || value === '') return true;
+  if (typeof value !== 'string') return false;
+  try { return new URL(value).protocol === 'https:'; } catch { return false; }
 }
 
-async function writeConfig(config: DailyPostsConfig): Promise<void> {
-  await fs.writeFile(CONTENT_FILE, JSON.stringify(config, null, 2), 'utf-8');
-}
 
 function validateAuth(request: NextRequest): NextResponse | null {
   const authHeader = request.headers.get('Authorization');
@@ -70,6 +66,10 @@ export async function POST(request: NextRequest) {
 
     const newPost = body as Partial<DailyPost>;
 
+    if (!validImageUrl(newPost.imageUrl)) {
+      return NextResponse.json({ error: 'Informe um endereço HTTPS público para a foto.' }, { status: 400 });
+    }
+
     // Validações
     if (!newPost.id || typeof newPost.id !== 'string') {
       return NextResponse.json(
@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
       id: newPost.id,
       message: newPost.message,
       link: newPost.link || null,
+      imageUrl: newPost.imageUrl || null,
       days: newPost.days,
     });
 
@@ -150,6 +151,10 @@ export async function PUT(request: NextRequest) {
 
     const updates = body as Partial<DailyPost> & { id: string };
 
+    if (!validImageUrl(updates.imageUrl)) {
+      return NextResponse.json({ error: 'Informe um endereço HTTPS público para a foto.' }, { status: 400 });
+    }
+
     if (!updates.id || typeof updates.id !== 'string') {
       return NextResponse.json(
         { error: 'Campo "id" é obrigatório.' },
@@ -172,6 +177,7 @@ export async function PUT(request: NextRequest) {
       ...config.posts[postIndex],
       ...(updates.message !== undefined && { message: updates.message }),
       ...(updates.link !== undefined && { link: updates.link }),
+      ...(updates.imageUrl !== undefined && { imageUrl: updates.imageUrl }),
       ...(updates.days !== undefined && { days: updates.days }),
     };
 

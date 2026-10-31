@@ -58,6 +58,18 @@
 
 ## 🔗 Conexões Entre Contas
 
+### Supabase — posts automáticos e fotos
+
+- **Conta informada:** `evelyncristini2013@gmail.com` (criada com ajuda do ChatGPT).
+- **Registro:** 30/10/2026.
+- **Projeto:** `suldwxsybezgoyhvpwre`.
+- **URL:** https://suldwxsybezgoyhvpwre.supabase.co
+- **Painel:** https://supabase.com/dashboard/project/suldwxsybezgoyhvpwre
+
+Conta criada; integração ainda pendente de configuração e teste real.
+Detalhes, chave pública fornecida e próximos passos: [SUPABASE.md](SUPABASE.md).
+Chaves de servidor devem ficar nas variáveis de ambiente, sem inclusão neste arquivo.
+
 ```
 GitHub (helogourmetdelicias@gmail.com)
     ↓ conectado via OAuth

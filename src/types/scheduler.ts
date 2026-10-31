@@ -4,6 +4,7 @@ export interface DailyPost {
   id: string;
   message: string;
   link?: string | null;
+  imageUrl?: string | null;
   days: string[];
 }
 

@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { publishScheduledPost, getNextPost } from '@/services/autoPublisher';
 import { publishToFacebook } from '@/services/facebook';
 import { savePublication } from '@/lib/logger';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { readConfig } from '@/lib/postsConfig';
 import { DailyPostsConfig, PublicationEntry } from '@/types/scheduler';
 
 export async function POST(request: NextRequest) {
@@ -39,9 +38,7 @@ export async function POST(request: NextRequest) {
 
     if (postId) {
       // Testa um post específico
-      const contentFile = path.join(process.cwd(), 'content', 'daily-posts.json');
-      const content = await fs.readFile(contentFile, 'utf-8');
-      const config: DailyPostsConfig = JSON.parse(content);
+      const config = await readConfig();
       
       const post = config.posts.find(p => p.id === postId);
       
@@ -52,7 +49,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await publishToFacebook(post.message, post.link || undefined);
+      const result = await publishToFacebook(post.message, post.link || undefined, post.imageUrl || undefined);
 
       // Salva no log
       const entry: PublicationEntry = {

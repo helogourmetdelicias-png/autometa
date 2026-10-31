@@ -2,33 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getNextPost } from '@/services/autoPublisher';
 import { getPublicationStats } from '@/lib/logger';
-import { promises as fs } from 'fs';
-import path from 'path';
-
-const STATE_FILE = path.join(process.cwd(), 'logs', 'scheduler-state.json');
-
-interface SchedulerState {
-  enabled: boolean;
-}
-
-async function readState(): Promise<SchedulerState> {
-  try {
-    const content = await fs.readFile(STATE_FILE, 'utf-8');
-    const data: unknown = JSON.parse(content);
-    if (typeof data === 'object' && data !== null && 'enabled' in data) {
-      return data as SchedulerState;
-    }
-  } catch {
-    // Se arquivo não existe ou está corrompido, usa padrão do env
-  }
-  
-  return { enabled: process.env.SCHEDULER_ENABLED === 'true' };
-}
-
-async function writeState(state: SchedulerState): Promise<void> {
-  await fs.mkdir(path.dirname(STATE_FILE), { recursive: true });
-  await fs.writeFile(STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
-}
+import { readState, writeState } from '@/lib/schedulerState';
 
 export async function GET(request: NextRequest) {
   try {

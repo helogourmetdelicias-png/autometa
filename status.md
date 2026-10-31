@@ -2,6 +2,21 @@
 
 Documento de acompanhamento das funcionalidades implementadas.
 
+## Atualização de implantação — 30/10/2026
+
+- Publicação manual em produção confirmada pelo responsável após renovar o token da Meta.
+- Suporte a fotos nos posts automáticos e persistência Supabase preparados localmente;
+  build e testes simulados passaram. Ainda não implantados nem testados com Supabase real.
+- Projeto Supabase criado: `suldwxsybezgoyhvpwre`, conta `evelyncristini2013@gmail.com`.
+- SQL de configuração executado no Supabase, conforme informado pelo responsável.
+- Variáveis Supabase configuradas no Vercel, conforme informado pelo responsável; redeploy anterior ainda sem o código da integração.
+- Pendências: enviar código da integração e testar upload/publicação no novo deploy.
+- O erro de carregamento do painel motivou a inclusão de entrada com `ADMIN_SECRET`.
+- O cron do Vercel permanece fixo em 09:00 UTC; o horário exibido no painel não o reprograma.
+- Detalhes e checklist atual: [SUPABASE.md](SUPABASE.md).
+
+As seções históricas abaixo não constituem validação da implantação atual.
+
 ## ✅ Fase 1: Publicação Manual (Concluída)
 
 ### Infraestrutura Base

@@ -1,70 +1,33 @@
 // Sistema de logging para publicações automáticas
-import { promises as fs } from 'fs';
-import path from 'path';
+import { readJson, writeJson } from './jsonStore';
 import { PublicationEntry, PublicationLog, PublicationStats } from '@/types/scheduler';
 
-const LOGS_DIR = path.join(process.cwd(), 'logs');
-const LOG_FILE = path.join(LOGS_DIR, 'publications.json');
-
-/**
- * Garante que o diretório de logs existe
- */
-async function ensureLogsDir(): Promise<void> {
-  try {
-    await fs.mkdir(LOGS_DIR, { recursive: true });
-  } catch (error) {
-    // Ignora erro se o diretório já existe
-    if (error instanceof Error && 'code' in error && error.code !== 'EEXIST') {
-      throw error;
-    }
-  }
-}
-
-/**
- * Lê o arquivo de log de publicações
- */
 async function readLog(): Promise<PublicationLog> {
-  try {
-    const content = await fs.readFile(LOG_FILE, 'utf-8');
-    const data: unknown = JSON.parse(content);
-    
-    // Validação básica da estrutura
-    if (typeof data === 'object' && data !== null && 'publications' in data && Array.isArray((data as PublicationLog).publications)) {
-      return data as PublicationLog;
-    }
-    
-    // Se o arquivo está corrompido, retorna estrutura vazia
-    return { publications: [] };
-  } catch (error) {
-    // Se o arquivo não existe, retorna estrutura vazia
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-      return { publications: [] };
-    }
-    throw error;
-  }
+  return readJson('logs/publications.json', { publications: [] });
 }
 
-/**
- * Salva o log de publicações
- */
 async function writeLog(log: PublicationLog): Promise<void> {
-  await ensureLogsDir();
-  await fs.writeFile(LOG_FILE, JSON.stringify(log, null, 2), 'utf-8');
+  await writeJson('logs/publications.json', log);
 }
 
 /**
  * Adiciona uma nova entrada ao histórico de publicações
  */
 export async function savePublication(entry: PublicationEntry): Promise<void> {
-  const log = await readLog();
-  log.publications.unshift(entry); // Adiciona no início (mais recente primeiro)
+  try {
+    const log = await readLog();
+    log.publications.unshift(entry); // Adiciona no início (mais recente primeiro)
   
-  // Limita o histórico a 1000 entradas para evitar arquivo muito grande
-  if (log.publications.length > 1000) {
-    log.publications = log.publications.slice(0, 1000);
+    // Limita o histórico a 1000 entradas para evitar arquivo muito grande
+    if (log.publications.length > 1000) {
+      log.publications = log.publications.slice(0, 1000);
+    }
+  
+    await writeLog(log);
+  } catch {
+    // A publicação já pode ter sido enviada; falha no histórico não deve sugerir reenvio.
+    console.error('Não foi possível registrar o histórico da publicação.', { id: entry.id, status: entry.status });
   }
-  
-  await writeLog(log);
 }
 
 /**

@@ -14,7 +14,7 @@ export function SchedulerStatus() {
 
   const fetchStatus = async () => {
     try {
-      const adminSecret = localStorage.getItem('adminSecret');
+      const adminSecret = sessionStorage.getItem('adminSecret');
       const response = await fetch('/api/scheduler/status', {
         headers: {
           'Authorization': `Bearer ${adminSecret}`,
@@ -48,7 +48,7 @@ export function SchedulerStatus() {
     setFeedback(null);
 
     try {
-      const adminSecret = localStorage.getItem('adminSecret');
+      const adminSecret = sessionStorage.getItem('adminSecret');
       const response = await fetch('/api/scheduler/status', {
         method: 'POST',
         headers: {
@@ -78,7 +78,7 @@ export function SchedulerStatus() {
     setFeedback(null);
 
     try {
-      const adminSecret = localStorage.getItem('adminSecret');
+      const adminSecret = sessionStorage.getItem('adminSecret');
       const response = await fetch('/api/scheduler/test', {
         method: 'POST',
         headers: {

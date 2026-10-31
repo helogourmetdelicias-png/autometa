@@ -9,7 +9,7 @@ const GRAPH_API_BASE = 'https://graph.facebook.com/v26.0';
  * @param link - URL opcional de direcionamento
  * @returns Promise com o ID da publicação ou mensagem de erro
  */
-export async function publishToFacebook(message: string, link?: string): Promise<PublishResponse> {
+export async function publishToFacebook(message: string, link?: string, imageUrl?: string): Promise<PublishResponse> {
   const pageId = process.env.META_PAGE_ID;
   const accessToken = process.env.META_PAGE_ACCESS_TOKEN;
 
@@ -28,14 +28,24 @@ export async function publishToFacebook(message: string, link?: string): Promise
   }
 
   // Construir URL com access_token como query parameter (padrão da Meta Graph API)
-  const url = new URL(`${GRAPH_API_BASE}/${pageId}/feed`);
-  url.searchParams.append('access_token', accessToken);
+  if (imageUrl) {
+    try {
+      if (new URL(imageUrl).protocol !== 'https:') throw new Error();
+    } catch {
+      return { success: false, error: 'A foto deve ter um endereço HTTPS público válido.' };
+    }
+  }
+  const url = new URL(`${GRAPH_API_BASE}/${pageId}/${imageUrl ? 'photos' : 'feed'}`);
 
   const body: Record<string, string> = {
     message: message.trim(),
   };
 
-  if (link && link.trim().length > 0) {
+  if (imageUrl) {
+    delete body.message;
+    body.url = imageUrl;
+    body.caption = [message.trim(), link?.trim()].filter(Boolean).join('\n\n');
+  } else if (link && link.trim().length > 0) {
     body.link = link.trim();
   }
 
@@ -44,6 +54,7 @@ export async function publishToFacebook(message: string, link?: string): Promise
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify(body),
     });
@@ -63,10 +74,10 @@ export async function publishToFacebook(message: string, link?: string): Promise
       };
     }
 
-    const postResponse = data as FacebookPostResponse;
+    const postResponse = data as FacebookPostResponse & { post_id?: string };
     return {
       success: true,
-      postId: postResponse.id,
+      postId: postResponse.post_id || postResponse.id,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';

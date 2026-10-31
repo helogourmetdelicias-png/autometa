@@ -1,12 +1,46 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { SchedulerStatus } from '@/components/scheduler/SchedulerStatus';
 import { ScheduleConfig } from '@/components/scheduler/ScheduleConfig';
 import { PostList } from '@/components/scheduler/PostList';
 import { PublicationHistory } from '@/components/scheduler/PublicationHistory';
 
 export default function SchedulerPage() {
+  const [authorized, setAuthorized] = useState(false);
+  const [secret, setSecret] = useState('');
+  const [error, setError] = useState('');
+  const [checking, setChecking] = useState(false);
+
+  if (!authorized) {
+    return (
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <form className="bg-white border rounded-xl p-6 w-full max-w-md space-y-4" onSubmit={async (event) => {
+          event.preventDefault();
+          setChecking(true);
+          setError('');
+          try {
+            const response = await fetch('/api/scheduler/posts', { headers: { Authorization: `Bearer ${secret}` } });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Não foi possível entrar.');
+            sessionStorage.setItem('adminSecret', secret);
+            setSecret('');
+            setAuthorized(true);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Falha de conexão.');
+          } finally { setChecking(false); }
+        }}>
+          <h1 className="text-xl font-semibold">Publicação automática</h1>
+          <label htmlFor="scheduler-secret" className="block text-sm">Informe a chave de administração (ADMIN_SECRET)</label>
+          <input id="scheduler-secret" type="password" autoComplete="off" required value={secret} onChange={e => setSecret(e.target.value)} className="w-full border rounded-lg p-2" />
+          {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+          <button disabled={checking} className="w-full rounded-lg bg-blue-600 text-white p-2">{checking ? 'Verificando...' : 'Entrar'}</button>
+          <Link href="/marketing" className="block text-sm text-blue-600">Voltar para publicação manual</Link>
+        </form>
+      </main>
+    );
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

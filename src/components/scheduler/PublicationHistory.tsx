@@ -13,7 +13,7 @@ export function PublicationHistory() {
   const fetchHistory = async (currentPage: number) => {
     setLoading(true);
     try {
-      const adminSecret = localStorage.getItem('adminSecret');
+      const adminSecret = sessionStorage.getItem('adminSecret');
       const offset = currentPage * limit;
       const response = await fetch(`/api/scheduler/history?limit=${limit}&offset=${offset}`, {
         headers: {
