@@ -4,7 +4,7 @@
 import cron from 'node-cron';
 import { publishScheduledPost } from './autoPublisher';
 
-let schedulerTask: cron.ScheduledTask | null = null;
+let schedulerTask: ReturnType<typeof cron.schedule> | null = null;
 
 /**
  * Inicia o agendamento local de publicações
