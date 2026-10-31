@@ -1,0 +1,51 @@
+{
+  "posts": [
+    {
+      "id": "monday-motivation",
+      "message": "💪 Boa semana, empreendedor! Que esta segunda-feira seja produtiva e cheia de vendas no seu PDV. O Montante está aqui para facilitar sua gestão! 🚀",
+      "link": null,
+      "days": ["monday"]
+    },
+    {
+      "id": "tuesday-sales-tip",
+      "message": "📊 Dica de Terça: Acompanhe seus relatórios diários no Montante PDV! Análise de vendas em tempo real ajuda a tomar melhores decisões. 💼",
+      "link": null,
+      "days": ["tuesday"]
+    },
+    {
+      "id": "wednesday-stock-alert",
+      "message": "📦 Dia de conferir o estoque! Com o Montante PDV, você recebe alertas automáticos quando os produtos estão acabando. Nunca mais perca vendas por falta de mercadoria! 🚨",
+      "link": null,
+      "days": ["wednesday"]
+    },
+    {
+      "id": "thursday-feature",
+      "message": "🎯 Quinta-feira do Recurso: Sabia que o Montante PDV permite controlar múltiplos caixas simultaneamente? Perfeito para lojas com grande movimento! ✨",
+      "link": null,
+      "days": ["thursday"]
+    },
+    {
+      "id": "friday-trial-promo",
+      "message": "🎉 Sexta-feira especial! Experimente o Montante PDV GRÁTIS por 3 meses. Sistema completo de gestão para o seu negócio. Teste agora sem compromisso! 🚀",
+      "link": "https://montante.app/trial",
+      "days": ["friday"]
+    },
+    {
+      "id": "saturday-weekend",
+      "message": "☀️ Bom fim de semana! Lembre-se: mesmo no sábado, o Montante PDV está trabalhando para você. Sistema 100% na nuvem, acessível de qualquer lugar! 🌐",
+      "link": null,
+      "days": ["saturday"]
+    },
+    {
+      "id": "sunday-planning",
+      "message": "📅 Domingo é dia de planejar a semana! Prepare-se para segunda-feira revisando os relatórios e metas no Montante PDV. Sucesso começa com organização! 💡",
+      "link": null,
+      "days": ["sunday"]
+    }
+  ],
+  "schedule": {
+    "time": "09:00",
+    "timezone": "Europe/Lisbon",
+    "enabled": true
+  }
+}
